@@ -1,20 +1,58 @@
+/**
+ * ADAPT-X Shared Login Page
+ *
+ * This is the single entry point for both citizens and administrators.
+ *
+ * DEMO AUTH NOTE (CLIENT-SIDE ONLY — NOT PRODUCTION):
+ * Entering admin@adapt-x.local / Admin123! triggers the admin flow.
+ * An incorrect password with that email shows an error message.
+ * Any other input triggers the existing citizen login flow.
+ * A real deployment MUST replace this with server-side authentication.
+ */
+
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, onAdminLogin, adminCredentials }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [keepSignedIn, setKeepSignedIn] = useState(true)
+  const [loginError, setLoginError] = useState('')
 
   // Forgot password flow states
   const [view, setView] = useState('login') // 'login' | 'forgot-1' | 'forgot-2' | 'forgot-3' | 'forgot-4'
   const [resetEmail, setResetEmail] = useState('youremail@gmail.com')
   const [code, setCode] = useState(['', '', '', '', '', ''])
 
+  const effectiveAdminCreds = adminCredentials || {
+    email: 'admin@adapt-x.local',
+    password: 'Admin123!',
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    onLogin()
+    setLoginError('')
+
+    const trimmedEmail = email.trim().toLowerCase()
+    const targetAdminEmail = effectiveAdminCreds.email.toLowerCase()
+
+    // ── Admin credential check (DEMO ONLY — not real auth) ──
+    if (trimmedEmail === targetAdminEmail) {
+      if (password === effectiveAdminCreds.password) {
+        if (onAdminLogin) {
+          onAdminLogin()
+        }
+        return
+      }
+      setLoginError('Invalid admin password. (Demo: Admin123!)')
+      return
+    }
+
+    // ── Citizen login — original flow (accepts any input) ──
+    if (onLogin) {
+      onLogin()
+    }
   }
 
   return (
@@ -84,7 +122,7 @@ export default function LoginPage({ onLogin }) {
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* License Number Input */}
+                  {/* License Number Input / Admin Email */}
                   <div>
                     <label className="block text-[11px] font-medium text-zinc-700 mb-1.5">
                       License Number
@@ -92,14 +130,17 @@ export default function LoginPage({ onLogin }) {
                     <input
                       type="text"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value)
+                        if (loginError) setLoginError('')
+                      }}
                       placeholder="A00-00-00000"
                       autoComplete="username"
                       className="w-full px-4 py-2.5 bg-white text-zinc-900 text-[14px] rounded-md border border-zinc-200 focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 transition-all outline-none"
                     />
                   </div>
 
-                  {/* Plate Number Input */}
+                  {/* Plate Number Input / Admin Password */}
                   <div>
                     <label className="block text-[11px] font-medium text-zinc-700 mb-1.5">
                       Plate Number
@@ -107,12 +148,27 @@ export default function LoginPage({ onLogin }) {
                     <input
                       type="text"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (loginError) setLoginError('')
+                      }}
                       placeholder="ABX123"
                       autoComplete="off"
                       className="w-full px-4 py-2.5 bg-white text-zinc-900 text-[14px] rounded-md border border-zinc-200 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 transition-all outline-none"
                     />
                   </div>
+
+                  {/* Error Message Alert */}
+                  {loginError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-red-600 text-[12px] font-medium bg-red-50 border border-red-200 rounded-md px-3 py-2"
+                      role="alert"
+                    >
+                      {loginError}
+                    </motion.div>
+                  )}
 
                   {/* Keep me signed in & Forgot Password */}
                   <div className="flex items-center justify-between pt-1">
